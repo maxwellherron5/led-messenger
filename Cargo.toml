@@ -1,0 +1,19 @@
+[package]
+name = "led-messenger"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+cc = "1.0"
+
+[dependencies]
+rpi-led-matrix = "0.1.5"
+libc = "0.2"
+embedded-graphics = { version = "0.6.2", optional = true }
+clap = { version = "2.33", optional = true }
+tokio = { version = "0.2", features = ["macros"] }
+serenity = { default-features = false, features = ["client", "gateway", "model", 
+    "rustls_backend"], version = "0.9.0-rc.2"}
