@@ -1,3 +1,6 @@
+#![allow(unused)]
+// USE THIS COMMAND sudo /home/maxwell/led-messenger/target/release/led-messenger --gpio-mapping adafruit-hat --rows 32 --slowdown-gpio 3 --no-hardware-pulse
+use std::env;
 
 use serenity::{
     async_trait,
@@ -7,62 +10,18 @@ use serenity::{
     },
     prelude::*,
 };
-/// Extremely simple use of arguments to create matrix options
-use std::env;
-use rpi_led_matrix::{LedMatrix, LedMatrixOptions, LedColor};
 use std::{thread, time};
+use clap::{crate_version, App, Arg};
+use embedded_graphics::{
+    fonts::{Font6x6, Text},
+    pixelcolor::{BinaryColor, Rgb888},
+    prelude::*,
+    primitives::{Circle, Rectangle, Triangle},
+    style::{PrimitiveStyle, TextStyle},
+};
+use rpi_led_matrix::{args, LedMatrix, LedColor};
 
-fn led_matrix() -> LedMatrix {
-    let mut options = LedMatrixOptions::new();
-    // options.set_hardware_mapping("adafruit-hat-pwm");
-    // options.set_chain_length(2);
-    options.set_hardware_pulsing(false);
-    options.set_brightness(100);
-    //options.set_inverse_colors(true);
-    //options.set_refresh_rate(true);
-    LedMatrix::new(Some(options)).unwrap()
-}
-
-fn draw_line() {
-    println!("draw_line");
-    let matrix = led_matrix();
-    let mut canvas = matrix.canvas();
-    let (width, height) = (32, 32);
-    let mut color = LedColor {
-        red: 127,
-        green: 0,
-        blue: 0,
-    };
-
-    canvas.clear();
-    for x in 0..width {
-        color.blue = 255 - 3 * x as u8;
-        canvas.draw_line(x, 0, width - 1 - x, height - 1, &color);
-        thread::sleep(time::Duration::new(0, 10000000));
-    }
-}
-
-fn draw_circle() {
-    println!("draw_circle");
-    let matrix = led_matrix();
-    let mut canvas = matrix.canvas();
-    let (width, height) = (32, 32);
-    let mut color = LedColor {
-        red: 127,
-        green: 0,
-        blue: 0,
-    };
-    let (x, y) = (width / 2, height / 2);
-
-    canvas.clear();
-    for r in 0..(width / 2) {
-        color.green = color.red;
-        color.red = color.blue;
-        color.blue = (r * r) as u8;
-        canvas.draw_circle(x, y, r as u32, &color);
-        thread::sleep(time::Duration::new(0, 100000000));
-    }
-}
+const DELAY: std::time::Duration = std::time::Duration::from_secs(5);
 
 const DISPLAY_COMMAND: &str = "!display";
 
@@ -71,15 +30,15 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        let triggered = msg.content.starts_with(DISPLAY_COMMAND);
+        let triggered = msg.content.starts_with(DISPLAY_COMMAND) && msg.author.bot == false;
         if triggered {
-            let response = format!("NOW DISPLAYING --- \n> {}", msg.content);
-            draw_circle();
+            let phrase = format!("{} ", DISPLAY_COMMAND);
+            let message = msg.content.replace(&phrase, "");
+            let response = format!("NOW DISPLAYING --- \n> {}", &message);
             if let Err(why) = msg.channel_id.say(&ctx.http, response).await {
                 println!("Error sending message: {:?}", why);
             }
-            println!("{} is displaying a message!", msg.author.name);
-            draw_line();
+            write_message(&message);
         }
     }
 
@@ -88,6 +47,37 @@ impl EventHandler for Handler {
     }
 }
 
+fn write_message(message: &str) {
+    let app = args::add_matrix_args(
+        App::new("C++ Library Example")
+            .about("shows basic usage of matrix arguments")
+            .version(crate_version!())
+            .arg(
+                Arg::from_usage("--loops=[LOOPS] 'number of cycles to spin the line'")
+                    .default_value("5"),
+            ),
+    );
+
+    let matches = app.get_matches();
+    let (options, rt_options) = args::matrix_options_from_args(&matches);
+
+    let matrix = LedMatrix::new(Some(options), Some(rt_options)).unwrap();
+    let mut canvas = matrix.canvas();
+    let (width, height) = (32, 32);
+    let mut color = LedColor {
+        red: 127,
+        green: 0,
+        blue: 0,
+    };
+    let text_style = TextStyle::new(Font6x6, BinaryColor::On);
+    canvas.clear();
+    let text = Text::new(message, Point::new(16, 16))
+        .into_styled(text_style)
+        .into_iter()
+        .draw(&mut canvas)
+        .unwrap();    
+    std::thread::sleep(DELAY);
+}
 
 #[tokio::main]
 async fn main() {
@@ -96,5 +86,5 @@ async fn main() {
 
     if let Err(why) = client.start().await {
         println!("Client error: {:?}", why);
-    }
+    }    
 }

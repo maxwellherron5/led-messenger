@@ -10,10 +10,14 @@ build = "build.rs"
 cc = "1.0"
 
 [dependencies]
-rpi-led-matrix = "0.1.5"
-libc = "0.2"
-embedded-graphics = { version = "0.6.2", optional = true }
-clap = { version = "2.33", optional = true }
+rpi-led-matrix = {version = "0.3.1", features = ["args", "embeddedgraphics"]}
+embedded-graphics = "0.6.2"
+clap = "2.33"
 tokio = { version = "0.2", features = ["macros"] }
 serenity = { default-features = false, features = ["client", "gateway", "model", 
     "rustls_backend"], version = "0.9.0-rc.2"}
+
+# [features]
+# args = ["clap"]
+# embeddedgraphics = ["embedded-graphics"]
+# default = ["embeddedgraphics"]
