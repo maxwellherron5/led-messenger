@@ -16,8 +16,3 @@ clap = "2.33"
 tokio = { version = "0.2", features = ["macros"] }
 serenity = { default-features = false, features = ["client", "gateway", "model", 
     "rustls_backend"], version = "0.9.0-rc.2"}
-
-# [features]
-# args = ["clap"]
-# embeddedgraphics = ["embedded-graphics"]
-# default = ["embeddedgraphics"]

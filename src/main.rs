@@ -13,16 +13,18 @@ use serenity::{
 use std::{thread, time};
 use clap::{crate_version, App, Arg};
 use embedded_graphics::{
-    fonts::{Font6x6, Text},
-    pixelcolor::{BinaryColor, Rgb888},
+    fonts::{Font6x8, Text},
+    pixelcolor::Rgb565,
+    // text::Text,
+    // pixelcolor::Rgb888,
+    // mono_font::{ascii::FONT_6X10, MonoTextStyle},
     prelude::*,
     primitives::{Circle, Rectangle, Triangle},
-    style::{PrimitiveStyle, TextStyle},
+    style::{PrimitiveStyle, TextStyleBuilder},
 };
 use rpi_led_matrix::{args, LedMatrix, LedColor};
 
-const DELAY: std::time::Duration = std::time::Duration::from_secs(5);
-
+const DELAY: std::time::Duration = std::time::Duration::from_millis(100);
 const DISPLAY_COMMAND: &str = "!display";
 
 struct Handler;
@@ -69,14 +71,30 @@ fn write_message(message: &str) {
         green: 0,
         blue: 0,
     };
-    let text_style = TextStyle::new(Font6x6, BinaryColor::On);
-    canvas.clear();
-    let text = Text::new(message, Point::new(16, 16))
-        .into_styled(text_style)
-        .into_iter()
-        .draw(&mut canvas)
-        .unwrap();    
-    std::thread::sleep(DELAY);
+
+    let text_style = TextStyleBuilder::new(Font6x8)
+        .text_color(Rgb565::RED)
+        .build();
+    
+    for i in (0..(message.len() * 3)).rev() {
+        println!("{}", i);
+        canvas.clear();
+        if i > 32 {
+            let text = Text::new(&message[i - 32..i], Point::new(0, 0))
+                .into_styled(text_style)
+                .into_iter()
+                .draw(&mut canvas)
+                .unwrap();
+        }
+        else {
+            let text = Text::new(message, Point::new(i as i32, 16))
+                .into_styled(text_style)
+                .into_iter()
+                .draw(&mut canvas)
+                .unwrap();    
+        }
+        std::thread::sleep(DELAY);
+    }
 }
 
 #[tokio::main]
